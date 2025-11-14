@@ -9,7 +9,10 @@ import (
 )
 
 type TeamRepo interface {
+	// создаем команду
 	Create(ctx context.Context, teamName string) (Team, error)
+
+	// достаем команду по названию
 	GetByName(ctx context.Context, teamName string) (Team, error)
 }
 
@@ -27,7 +30,7 @@ func (r *PgTeamRepo) Create(ctx context.Context, teamName string) (Team, error) 
 	var t Team
 	err := r.db.QueryRow(ctx, q, teamName).Scan(&t.ID, &t.Name)
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == UNIQUE_VIOLATION {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == uniqueViolationErr {
 			return Team{}, ErrTeamExists
 		}
 		return Team{}, err

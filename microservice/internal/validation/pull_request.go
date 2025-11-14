@@ -7,7 +7,7 @@ import (
 	"review-manager/internal/models/dto"
 )
 
-// /pullRequest/create
+/* /pullRequest/create */
 func ValidateCreatePR(req dto.CreatePrRequest) error {
 	if strings.TrimSpace(req.PullRequestID) == "" {
 		return errors.New("pull_request_id is required")
@@ -21,7 +21,7 @@ func ValidateCreatePR(req dto.CreatePrRequest) error {
 	return nil
 }
 
-// /pullRequest/merge
+/* /pullRequest/merge */
 func ValidateMergePR(req dto.MergePrRequest) error {
 	if strings.TrimSpace(req.PullRequestID) == "" {
 		return errors.New("pull_request_id is required")
@@ -29,7 +29,7 @@ func ValidateMergePR(req dto.MergePrRequest) error {
 	return nil
 }
 
-// /pullRequest/reassign
+/* /pullRequest/reassign */
 func ValidateReassignPR(req dto.ReassignPrRequest) error {
 	if strings.TrimSpace(req.PullRequestID) == "" {
 		return errors.New("pull_request_id is required")

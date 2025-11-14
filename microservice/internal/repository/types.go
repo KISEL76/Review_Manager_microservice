@@ -6,7 +6,9 @@ import (
 )
 
 const (
-	UNIQUE_VIOLATION = "23505"
+	uniqueViolationErr     = "23505"
+	statusOpen         int = 1
+	statusMerged       int = 2
 )
 
 var (
