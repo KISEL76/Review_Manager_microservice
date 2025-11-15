@@ -36,9 +36,6 @@ CREATE TABLE pull_requests (
 -- Индекс для запросов/статистики по автору:
 CREATE INDEX idx_pull_requests_author ON pull_requests (author_id);
 
--- Индекс по статусу PR:
-CREATE INDEX idx_pull_requests_status ON pull_requests (status_id);
-
 CREATE TABLE pull_request_reviewers (
     pull_request_id TEXT NOT NULL REFERENCES pull_requests (pull_request_id) ON DELETE CASCADE,
     reviewer_id     TEXT NOT NULL REFERENCES users (user_id),

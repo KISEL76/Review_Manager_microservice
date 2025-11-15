@@ -12,7 +12,7 @@ type PrRepo interface {
 	// проверяем, существует ли PR с таким идентификатором
 	Exists(ctx context.Context, prID string) (bool, error)
 
-	// создаем новый PR в базе (без назначения ревьюверов)
+	// создаем новый PR в базе без назначения ревьюверов
 	Insert(ctx context.Context, pr PullRequest) error
 
 	// добавляем к PR указанных ревьюверов
@@ -46,17 +46,20 @@ func (r *PgPrRepo) Exists(ctx context.Context, prID string) (bool, error) {
 
 func (r *PgPrRepo) Insert(ctx context.Context, pr PullRequest) error {
 	const q = `
-		INSERT INTO pull_requests(pull_request_id,
-    	pull_request_name,
-    	author_id,
-    	status_id,
-    	created_at,
-    	merged_at,
-    	need_more_reviewers) 
+		INSERT INTO pull_requests(
+			pull_request_id,
+			pull_request_name,
+			author_id,
+			status_id,
+			created_at,
+			merged_at,
+			need_more_reviewers) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
+	db := currentDB(ctx, r.db)
 
-	_, err := r.db.Exec(ctx, q, pr.ID,
+	_, err := db.Exec(ctx, q,
+		pr.ID,
 		pr.Name,
 		pr.AuthorID,
 		pr.StatusID,
@@ -77,8 +80,10 @@ func (r *PgPrRepo) AddReviewers(ctx context.Context, prID string, reviewerIDs []
 		VALUES ($1, $2)
 		ON CONFLICT (pull_request_id, reviewer_id) DO NOTHING
 	`
+	db := currentDB(ctx, r.db)
+
 	for _, rid := range reviewerIDs {
-		if _, err := r.db.Exec(ctx, q, prID, rid); err != nil {
+		if _, err := db.Exec(ctx, q, prID, rid); err != nil {
 			return err
 		}
 	}
@@ -145,23 +150,31 @@ func (r *PgPrRepo) GetWithReviewers(ctx context.Context, prID string) (PullReque
 func (r *PgPrRepo) SetMerged(ctx context.Context, prID string, mergedAt time.Time) (PullRequest, error) {
 	const q = `
 		UPDATE pull_requests
-		SET status_id = $1,
-			merged_at = COALESCE(merged_at, $2)
-		WHERE pull_request_id = $3
-		RETURNING pull_request_id, pull_request_name, author_id, status_id, created_at, merged_at
+		SET status_id = $2,
+			merged_at = COALESCE(merged_at, $3)
+		WHERE pull_request_id = $1
+		RETURNING pull_request_id,
+				pull_request_name,
+				author_id,
+				status_id,
+				created_at,
+				merged_at
 	`
+
+	db := currentDB(ctx, r.db)
+
 	var (
-		pr         PullRequest
-		mergedAtDB *time.Time
+		pr       PullRequest
+		mergedDB *time.Time
 	)
 
-	err := r.db.QueryRow(ctx, q, statusMerged, mergedAt, prID).Scan(
+	err := db.QueryRow(ctx, q, prID, StatusMerged, mergedAt).Scan(
 		&pr.ID,
 		&pr.Name,
 		&pr.AuthorID,
 		&pr.StatusID,
 		&pr.CreatedAt,
-		&mergedAtDB,
+		&mergedDB,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -169,12 +182,7 @@ func (r *PgPrRepo) SetMerged(ctx context.Context, prID string, mergedAt time.Tim
 		}
 		return PullRequest{}, err
 	}
-	pr.MergedAt = mergedAtDB
-
-	const qStatus = `SELECT name FROM pr_statuses WHERE id = $1`
-	if err := r.db.QueryRow(ctx, qStatus, pr.StatusID).Scan(&pr.StatusName); err != nil {
-		return PullRequest{}, err
-	}
+	pr.MergedAt = mergedDB
 
 	return pr, nil
 }
@@ -186,8 +194,9 @@ func (r *PgPrRepo) ReplaceReviewer(ctx context.Context, prID, oldReviewerID, new
 		WHERE pull_request_id = $1
 		AND reviewer_id = $2
 	`
+	db := currentDB(ctx, r.db)
 
-	ct, err := r.db.Exec(ctx, q, prID, oldReviewerID, newReviewerID)
+	ct, err := db.Exec(ctx, q, prID, oldReviewerID, newReviewerID)
 	if err != nil {
 		return err
 	}

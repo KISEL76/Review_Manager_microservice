@@ -12,7 +12,7 @@ type UserRepo interface {
 	GetByID(ctx context.Context, userID string) (User, error)
 
 	// обновляем флаг активности пользователя и возвращаем обновленную запись
-	SetActive(ctx context.Context, userID string, isActive bool) (User, error)
+	SetIsActive(ctx context.Context, userID string, isActive bool) (User, error)
 
 	// возвращаем список PR в короткой форме, где пользователь назначен ревьювером
 	GetReviewPrs(ctx context.Context, userID string) ([]PullRequestShort, error)
@@ -23,6 +23,12 @@ type UserRepo interface {
 
 	// вставляем или обновляем участников команды в заданной teamID
 	UpsertTeamMembers(ctx context.Context, teamID int, members []User) error
+
+	// выводим участников по teamID
+	ListByTeam(ctx context.Context, teamID int) ([]User, error)
+
+	// доп задание: количество PR на пользователя
+	GetReviewerStats(ctx context.Context) ([]ReviewerStatRow, error)
 }
 
 type PgUserRepo struct {
@@ -62,7 +68,7 @@ func (r *PgUserRepo) GetByID(ctx context.Context, userID string) (User, error) {
 	return u, nil
 }
 
-func (r *PgUserRepo) SetActive(ctx context.Context, userID string, isActive bool) (User, error) {
+func (r *PgUserRepo) SetIsActive(ctx context.Context, userID string, isActive bool) (User, error) {
 	const q = `
 		UPDATE users u
 		SET is_active = $1
@@ -158,17 +164,81 @@ func (r *PgUserRepo) FindActiveInTeamExcept(
 
 func (r *PgUserRepo) UpsertTeamMembers(ctx context.Context, teamID int, members []User) error {
 	const q = `
-		INSERT INTO users(user_id, username, team_id, is_active)
+		INSERT INTO users (user_id, username, team_id, is_active)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (user_id) DO UPDATE
 		SET username = EXCLUDED.username,
 			team_id  = EXCLUDED.team_id,
 			is_active = EXCLUDED.is_active
 	`
+	db := currentDB(ctx, r.db)
+
 	for _, m := range members {
-		if _, err := r.db.Exec(ctx, q, m.ID, m.Username, teamID, m.IsActive); err != nil {
+		if _, err := db.Exec(ctx, q, m.ID, m.Username, teamID, m.IsActive); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (r *PgUserRepo) ListByTeam(ctx context.Context, teamID int) ([]User, error) {
+	const q = `
+		SELECT user_id, username, team_id, is_active
+		FROM USERS
+		WHERE team_id = $1
+		ORDER BY user_id
+	`
+
+	rows, err := r.db.Query(ctx, q, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.ID, &u.Username, &u.TeamID, &u.IsActive); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (r *PgUserRepo) GetReviewerStats(ctx context.Context) ([]ReviewerStatRow, error) {
+	const q = `
+		SELECT u.user_id,
+			   u.username,
+			   COUNT(rpr.pull_request_id) AS reviews_count
+		FROM users u
+		LEFT JOIN pull_request_reviewers rpr
+			ON rpr.reviewer_id = u.user_id
+		GROUP BY u.user_id, u.username
+		ORDER BY reviews_count DESC, u.user_id
+	`
+
+	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []ReviewerStatRow
+	for rows.Next() {
+		var row ReviewerStatRow
+		if err := rows.Scan(&row.UserID, &row.Username, &row.ReviewsCount); err != nil {
+			return nil, err
+		}
+		res = append(res, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }

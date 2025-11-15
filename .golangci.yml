@@ -8,3 +8,6 @@ linters:
     - staticcheck 
     - goimports  
     - revive  
+    - errcheck
+    - ineffassign 
+    - misspell

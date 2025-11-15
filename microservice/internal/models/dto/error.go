@@ -9,6 +9,7 @@ type ErrorResponse struct {
 	Error ErrorBody `json:"error"`
 }
 
+// Коды ошибок для тела JSON
 const (
 	ErrorCodeTeamExists  = "TEAM_EXISTS"
 	ErrorCodePRExists    = "PR_EXISTS"

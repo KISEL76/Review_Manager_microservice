@@ -27,8 +27,10 @@ func NewPgTeamRepo(db *pgxpool.Pool) *PgTeamRepo {
 func (r *PgTeamRepo) Create(ctx context.Context, teamName string) (Team, error) {
 	const q = `INSERT INTO teams (team_name) VALUES ($1) RETURNING id, team_name`
 
+	db := currentDB(ctx, r.db)
+
 	var t Team
-	err := r.db.QueryRow(ctx, q, teamName).Scan(&t.ID, &t.Name)
+	err := db.QueryRow(ctx, q, teamName).Scan(&t.ID, &t.Name)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == uniqueViolationErr {
 			return Team{}, ErrTeamExists
@@ -39,7 +41,7 @@ func (r *PgTeamRepo) Create(ctx context.Context, teamName string) (Team, error) 
 }
 
 func (r *PgTeamRepo) GetByName(ctx context.Context, teamName string) (Team, error) {
-	const q = `SELECT id, team_name FROM teams WHERE name = "$1"`
+	const q = `SELECT id, team_name FROM teams WHERE team_name = $1`
 
 	var t Team
 	err := r.db.QueryRow(ctx, q, teamName).Scan(&t.ID, &t.Name)

@@ -6,19 +6,21 @@ import (
 )
 
 const (
-	uniqueViolationErr     = "23505"
-	statusOpen         int = 1
-	statusMerged       int = 2
+	uniqueViolationErr = "23505"
+	StatusOpen         = 1
+	StatusMerged       = 2
 )
 
+// Ошибки для работы с СУБД
 var (
-	ErrTeamExists     = fmt.Errorf("team already exists")
-	ErrTeamNotFound   = fmt.Errorf("team not found")
-	ErrUserNotFound   = fmt.Errorf("user not found")
-	ErrPRNotFound     = fmt.Errorf("pull request not found")
+	ErrTeamExists     = fmt.Errorf("team_name already exists")
+	ErrTeamNotFound   = fmt.Errorf("resource not found")
+	ErrUserNotFound   = fmt.Errorf("resource not found")
+	ErrPRNotFound     = fmt.Errorf("resource not found")
 	ErrNoCandidate    = fmt.Errorf("no active candidate in team")
 	ErrReviewerNotSet = fmt.Errorf("reviewer is not assigned to this PR")
-	ErrPRMerged       = fmt.Errorf("pull request already merged")
+	ErrPRMerged       = fmt.Errorf("cannot reassign on merged PR")
+	ErrPRExists       = fmt.Errorf("PR id already exists")
 )
 
 type Team struct {
@@ -54,4 +56,10 @@ type PullRequestShort struct {
 	Name       string
 	AuthorID   string
 	StatusName string
+}
+
+type ReviewerStatRow struct {
+	UserID       string
+	Username     string
+	ReviewsCount int
 }
