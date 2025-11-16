@@ -28,7 +28,7 @@ func NewMux(h *Handler) http.Handler {
 	// health
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok\n"))
 	})
 
 	// Teams

@@ -152,10 +152,11 @@ func (s *PRService) Reassign(ctx context.Context, req dto.ReassignPrRequest) (dt
 		return dto.ReassignPrResponse{}, err
 	}
 
-	exclude := make(map[string]struct{}, len(reviewers))
+	exclude := make(map[string]struct{}, len(reviewers)+1)
 	for _, id := range reviewers {
 		exclude[id] = struct{}{}
 	}
+	exclude[prRow.AuthorID] = struct{}{}
 
 	var possible []string
 	for _, c := range candidates {
