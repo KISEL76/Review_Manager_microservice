@@ -1,5 +1,5 @@
 # 1 этап: Сборка микросервиса
-FROM golang:1.23-alpine AS build
+FROM golang:1.23.1-alpine AS build
 WORKDIR /app
 
 COPY go.mod go.sum ./

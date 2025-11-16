@@ -1,10 +1,10 @@
-package unittests
+package unit
 
 import (
 	"context"
 	"testing"
 
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 	"review-manager/internal/repository"
 	"review-manager/internal/service"
 )

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"math/rand"
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 	"review-manager/internal/repository"
 	"time"
 )
@@ -51,7 +51,7 @@ func (s *PRService) Create(ctx context.Context, req dto.CreatePrRequest) (dto.Cr
 		return dto.CreatePrResponse{}, err
 	}
 	if exists {
-		return dto.CreatePrResponse{}, repository.ErrTeamExists
+		return dto.CreatePrResponse{}, repository.ErrPRExists
 	}
 
 	author, err := s.Users.GetByID(ctx, req.AuthorID)

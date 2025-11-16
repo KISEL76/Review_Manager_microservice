@@ -1,4 +1,4 @@
-package unittests
+package unit
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"review-manager/internal/repository"
 )
 
-// Простая in-memory реализация на мапах PrRepo для тестов
+// in-memory реализация на мапах PrRepo для тестов
 type MockPrRepo struct {
 	PRs       map[string]repository.PullRequest
 	Reviewers map[string][]string

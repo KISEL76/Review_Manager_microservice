@@ -1,2 +1,4 @@
 .env
+.env.backup
+microservice/coverage.out
 .DS_Store

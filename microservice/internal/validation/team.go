@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 )
 
 func ValidateTeamAdd(req dto.TeamAddRequest) error {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 	"review-manager/internal/repository"
 	"review-manager/internal/validation"
 )

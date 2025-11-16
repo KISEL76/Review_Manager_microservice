@@ -1,4 +1,4 @@
-package unittests
+package unit
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 	"review-manager/internal/repository"
 	"review-manager/internal/service"
 )
@@ -207,5 +207,110 @@ func TestPRService_Reassign_MergedPR(t *testing.T) {
 	}
 	if !errors.Is(err, repository.ErrPRMerged) {
 		t.Fatalf("ожидали ошибку ErrPRMerged, получили %v", err)
+	}
+}
+
+// Проверяем, что при попытке создать уже существующий PR возвращается ErrPRExists
+func TestPRService_Create_PRAlreadyExists(t *testing.T) {
+	svc, prRepo, userRepo := newTestPRService()
+
+	// автор существует
+	userRepo.Users["u1"] = repository.User{ID: "u1", Username: "Author", TeamID: 1, IsActive: true}
+
+	// PR уже есть в базе
+	prRepo.PRs["pr-dup"] = repository.PullRequest{
+		ID:        "pr-dup",
+		Name:      "Old",
+		AuthorID:  "u1",
+		StatusID:  repository.StatusOpen,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	req := dto.CreatePrRequest{
+		PullRequestID:   "pr-dup",
+		PullRequestName: "New name",
+		AuthorID:        "u1",
+	}
+
+	_, err := svc.Create(context.Background(), req)
+	if err == nil {
+		t.Fatalf("ожидали ошибку, получили nil")
+	}
+	if !errors.Is(err, repository.ErrPRExists) {
+		t.Fatalf("ожидали ErrPRExists, получили %v", err)
+	}
+}
+
+// Проверяем, что если нет ни одного кандидата для замены ревьювера, возвращается ErrNoCandidate
+func TestPRService_Reassign_NoCandidates(t *testing.T) {
+	svc, prRepo, userRepo := newTestPRService()
+
+	// один пользователь, он же ревьювер и он же единственный в команде
+	userRepo.Users["u1"] = repository.User{ID: "u1", Username: "Solo", TeamID: 1, IsActive: true}
+
+	now := time.Now().UTC()
+	prRepo.PRs["pr-solo"] = repository.PullRequest{
+		ID:        "pr-solo",
+		Name:      "Change",
+		AuthorID:  "u1",
+		StatusID:  repository.StatusOpen,
+		CreatedAt: now,
+	}
+	prRepo.Reviewers["pr-solo"] = []string{"u1"}
+
+	req := dto.ReassignPrRequest{
+		PullRequestID: "pr-solo",
+		OldUserID:     "u1",
+	}
+
+	_, err := svc.Reassign(context.Background(), req)
+	if err == nil {
+		t.Fatalf("ожидали ошибку, получили nil")
+	}
+	if !errors.Is(err, repository.ErrNoCandidate) {
+		t.Fatalf("ожидали ErrNoCandidate, получили %v", err)
+	}
+}
+
+// Проверяем, что Merge возвращает ErrPRNotFound, если PR не существует
+func TestPRService_Merge_PRNotFound(t *testing.T) {
+	svc, _, _ := newTestPRService()
+
+	_, err := svc.Merge(context.Background(), dto.MergePrRequest{
+		PullRequestID: "unknown-pr",
+	})
+	if err == nil {
+		t.Fatalf("ожидали ошибку, но получили nil")
+	}
+	if !errors.Is(err, repository.ErrPRNotFound) {
+		t.Fatalf("ожидали ErrPRNotFound, получили %v", err)
+	}
+}
+
+// Проверяем, что Reassign возвращает ErrReviewerNotSet,
+// если переданный old_user_id не назначен ревьювером на этот PR
+func TestPRService_Reassign_ReviewerNotAssigned(t *testing.T) {
+	svc, prRepo, _ := newTestPRService()
+
+	// PR в статусе OPEN c одним ревьювером u1
+	prRepo.PRs["pr-6"] = repository.PullRequest{
+		ID:       "pr-6",
+		Name:     "Reassign error",
+		AuthorID: "author",
+		StatusID: repository.StatusOpen,
+	}
+	prRepo.Reviewers["pr-6"] = []string{"u1"} // единственный ревьювер
+
+	req := dto.ReassignPrRequest{
+		PullRequestID: "pr-6",
+		OldUserID:     "u999", // такого ревьювера у PR нет
+	}
+
+	_, err := svc.Reassign(context.Background(), req)
+	if err == nil {
+		t.Fatalf("ожидали ошибку, но получили nil")
+	}
+	if !errors.Is(err, repository.ErrReviewerNotSet) {
+		t.Fatalf("ожидали ErrReviewerNotSet, получили %v", err)
 	}
 }

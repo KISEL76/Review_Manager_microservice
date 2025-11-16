@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 )
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

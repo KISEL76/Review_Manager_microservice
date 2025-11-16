@@ -22,7 +22,7 @@ services:
     build:
       context: ./microservice
       dockerfile: Dockerfile
-    container_name: review_manager
+    container_name: review_manager_api
     depends_on:
       postgres:
         condition: service_healthy

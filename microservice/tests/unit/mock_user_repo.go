@@ -1,4 +1,4 @@
-package unittests
+package unit
 
 import (
 	"context"
@@ -6,14 +6,18 @@ import (
 	"review-manager/internal/repository"
 )
 
-// MockUserRepo - реализация UserRepo для юнит-тестов
+// in-memory реализация UserRepo для тестов
 type MockUserRepo struct {
-	Users map[string]repository.User
+	Users     map[string]repository.User
+	ReviewPRs map[string][]repository.PullRequestShort
+	StatsRows []repository.ReviewerStatRow
 }
 
 func NewMockUserRepo() *MockUserRepo {
 	return &MockUserRepo{
-		Users: make(map[string]repository.User),
+		Users:     make(map[string]repository.User),
+		ReviewPRs: make(map[string][]repository.PullRequestShort),
+		StatsRows: nil,
 	}
 }
 
@@ -36,9 +40,15 @@ func (m *MockUserRepo) SetIsActive(_ context.Context, userID string, isActive bo
 	return u, nil
 }
 
-func (m *MockUserRepo) GetReviewPrs(_ context.Context, _ string) ([]repository.PullRequestShort, error) {
-	// для тестов PRService не используется
-	return nil, nil
+func (m *MockUserRepo) GetReviewPrs(_ context.Context, userID string) ([]repository.PullRequestShort, error) {
+	prs, ok := m.ReviewPRs[userID]
+	if !ok {
+		return nil, nil
+	}
+
+	out := make([]repository.PullRequestShort, len(prs))
+	copy(out, prs)
+	return out, nil
 }
 
 func (m *MockUserRepo) FindActiveInTeamExcept(
@@ -85,7 +95,12 @@ func (m *MockUserRepo) ListByTeam(_ context.Context, teamID int) ([]repository.U
 }
 
 func (m *MockUserRepo) GetReviewerStats(_ context.Context) ([]repository.ReviewerStatRow, error) {
-	return nil, nil
+	if len(m.StatsRows) == 0 {
+		return nil, nil
+	}
+	out := make([]repository.ReviewerStatRow, len(m.StatsRows))
+	copy(out, m.StatsRows)
+	return out, nil
 }
 
 // compile-time проверка соответствия интерфейсу

@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"net/http"
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 )
 
 // GET /stats/reviewers

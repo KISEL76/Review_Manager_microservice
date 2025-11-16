@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"review-manager/internal/models/dto"
+	"review-manager/internal/dto"
 	"review-manager/internal/repository"
 )
 

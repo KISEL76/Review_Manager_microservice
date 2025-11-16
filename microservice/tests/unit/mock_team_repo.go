@@ -1,4 +1,4 @@
-package unittests
+package unit
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"review-manager/internal/repository"
 )
 
-// MockTeamRepo — in-memory реализация TeamRepo
+// in-memory реализация TeamRepo для тестов
 type MockTeamRepo struct {
 	TeamsByName map[string]repository.Team
 	nextID      int
